@@ -335,9 +335,9 @@ The following parameters can be specified to set up seccomp:
 "mountLabel": "system_u:object_r:svirt_sandbox_file_t:s0:c715,c811"
 ```
 
-## 容器bundle
+## 容器文件系统包（bundle）
 
-文件系统Bundle是一个容器格式，它包含了容器运行需要的 - 根文件系统和config，可以在bundle上执行spec规定的操作.
+容器文件系统Bundle是一个容器格式，它包含了容器运行需要的 - 根文件系统和config，并可以在bundle上执行spec规定的操作.
 
 A Standard Container bundle contains all the information needed to load and run a container.
 This includes the following artifacts:
@@ -408,6 +408,7 @@ This includes the following artifacts:
 13. The [`poststop` hooks](config.md#poststop) MUST be invoked by the runtime.
     If any `poststop` hook fails, the runtime MUST [log a warning](#warnings), but the remaining hooks and lifecycle continue as if the hook had succeeded.
 
+![life_cycle](oci_runtime_lifecycle.png)
 ## 操作（Operations）
 
 - Query State
