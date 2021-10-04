@@ -116,6 +116,16 @@
 
    如果没有path，表明需要创建一个新的指定类型的[container namespace](glossary.md#container-namespace).
 
+* 用户namespace的映射（host -> container）
+**`uidMappings`** (array of objects, OPTIONAL) describes the user namespace uid mappings from the host to the container.
+**`gidMappings`** (array of objects, OPTIONAL) describes the user namespace gid mappings from the host to the container.
+
+每个映射包含下面的字段
+* **`containerID`** *(uint32, REQUIRED)* - 容器内起始uid/gid编号.
+* **`hostID`** *(uint32, REQUIRED)* - 主机内起始uid/gid编号（和上面ContainerID对应）
+* **`size`** *(uint32, REQUIRED)* - 映射的条数.
+
+
 ```json
 "namespaces": [
     {
