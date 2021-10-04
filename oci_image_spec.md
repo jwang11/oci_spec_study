@@ -657,3 +657,66 @@ Whitespace is OPTIONAL and implementations MAY have compact JSON with no whitesp
     ]
 }
 ```
+
+## 内容描述符（Content Descriptors）
+
+This section defines the `application/vnd.oci.descriptor.v1+json` [media type](media-types.md).
+
+### 属性
+
+- **`mediaType`** *string*
+
+  This REQUIRED property contains the media type of the referenced content.
+  Values MUST comply with [RFC 6838][rfc6838], including the [naming requirements in its section 4.2][rfc6838-s4.2].
+
+  The OCI image specification defines [several of its own MIME types](media-types.md) for resources defined in the specification.
+
+- **`digest`** *string*
+
+  This REQUIRED property is the _digest_ of the targeted content, conforming to the requirements outlined in [Digests](#digests).
+  Retrieved content SHOULD be verified against this digest when consumed via untrusted sources.
+
+- **`size`** *int64*
+
+  This REQUIRED property specifies the size, in bytes, of the raw content.
+  This property exists so that a client will have an expected size for the content before processing.
+  If the length of the retrieved content does not match the specified length, the content SHOULD NOT be trusted.
+
+- **`urls`** *array of strings*
+
+  This OPTIONAL property specifies a list of URIs from which this object MAY be downloaded.
+  Each entry MUST conform to [RFC 3986][rfc3986].
+  Entries SHOULD use the `http` and `https` schemes, as defined in [RFC 7230][rfc7230-s2.7].
+
+- **`annotations`** *string-string map*
+
+    This OPTIONAL property contains arbitrary metadata for this descriptor.
+    This OPTIONAL property MUST use the [annotation rules](annotations.md#rules).
+
+
+### SHA-512
+
+[SHA-512][rfc4634-s4.2] is a collision-resistant hash function which [may be more perfomant][sha256-vs-sha512] than [SHA-256](#sha-256) on some CPUs.
+Implementations MAY implement SHA-512 digest verification for use in descriptors.
+
+
+```json,title=Content%20Descriptor&mediatype=application/vnd.oci.descriptor.v1%2Bjson
+{
+  "mediaType": "application/vnd.oci.image.manifest.v1+json",
+  "size": 7682,
+  "digest": "sha256:5b0bcabd1ed22e9fb1310cf6c2dec7cdef19f0ad69efa1f392e94a4333501270"
+}
+```
+
+In the following example, the descriptor indicates that the referenced manifest is retrievable from a particular URL:
+
+```json,title=Content%20Descriptor&mediatype=application/vnd.oci.descriptor.v1%2Bjson
+{
+  "mediaType": "application/vnd.oci.image.manifest.v1+json",
+  "size": 7682,
+  "digest": "sha256:5b0bcabd1ed22e9fb1310cf6c2dec7cdef19f0ad69efa1f392e94a4333501270",
+  "urls": [
+    "https://example.com/example-manifest"
+  ]
+}
+```
