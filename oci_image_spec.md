@@ -6,6 +6,7 @@
 * [Image Manifest](manifest.md) - 描述镜像组成元素的文档
 * [Image Index](image-index.md) - 按照平台分类的Manifest列表
 * [Filesystem Layer](layer.md) - 容器文件系统的变化集合（changeset）。
-* [Image Configuration](config.md) - a document determining layer ordering and configuration of the image suitable for translation into a [runtime bundle][runtime-spec]
-* [Conversion](conversion.md) - a document describing how this translation should occur
-* [Descriptor](descriptor.md) - a reference that describes the type, metadata and content address of referenced content
+* [Image Configuration](config.md) - 定义了容器的层顺序，以及生成runtime bundle的镜像配置。
+* [Descriptor](descriptor.md) - 描述类型，元数据以及内容地址的结构
+
+
