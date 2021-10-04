@@ -9,7 +9,7 @@
 * [Image Configuration](config.md) - 定义了容器的层顺序，以及生成runtime bundle的镜像配置。
 * [Descriptor](descriptor.md) - 描述类型，元数据以及内容地址的结构
 
-
+![image_digram](https://github.com/google/go-containerregistry/blob/d7f8d06c87ed209507dd5f2d723267fe35b38a9f/images/image-anatomy.dot.svg)
 ## 镜像清单（Image Manifest）
 
 
