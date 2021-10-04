@@ -350,7 +350,7 @@ This includes the following artifacts:
 
 ## 运行时和生命周期
 
-- 状态（State）
+### 状态（State）
 * **`ociVersion`** (string, REQUIRED) is version of the Open Container Initiative Runtime Specification with which the state complies.
 * **`id`** (string, REQUIRED) is the container's ID.
     This MUST be unique across all containers on this host.
@@ -382,7 +382,7 @@ This includes the following artifacts:
 }
 ```
 
-- 生命周期（lifecycle）
+### 生命周期（lifecycle）
 
 1. OCI compliant runtime's [`create`](runtime.md#create) command is invoked with a reference to the location of the bundle and a unique identifier.
 2. The container's runtime environment MUST be created according to the configuration in [`config.json`](config.md).
