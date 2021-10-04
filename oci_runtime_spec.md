@@ -11,7 +11,7 @@
 ### 配置文件（configuration）
 配置是一个平台相关的config.json文件，这里这介绍Linux平台
 
-#### 缺省文件系统
+#### 缺省文件系统 (filesystem)
 在Linux 容器的文件系统里，下面这些是必须具备的（可以更多）。
 
 | Path     | Type   |
@@ -99,7 +99,7 @@
                 }
         ],
 ```
-#### 命名空间
+#### 命名空间（namespace )
 
 * **`type`** *(string, REQUIRED)* - namespace类型. Linux容器应该支持下面这些Namespace，
     * **`pid`** 容器进程应该只看见自己容器内的进程.
@@ -145,7 +145,7 @@
 ```
 
 
-### 用户namespace的映射（host -> container）
+#### 用户namespace的映射（host -> container）
 **`uidMappings`** (array of objects, OPTIONAL) describes the user namespace uid mappings from the host to the container.
 **`gidMappings`** (array of objects, OPTIONAL) describes the user namespace gid mappings from the host to the container.
 
@@ -167,6 +167,47 @@
         "containerID": 0,
         "hostID": 1000,
         "size": 32000
+    }
+]
+```
+
+#### 设备（devices）
+
+**`devices`** 可选的) 列举容器内必须包含的设备
+
+Each entry has the following structure:
+
+* **`type`** *(string, REQUIRED)* - type of device: `c`, `b`, `u` or `p`.
+    More info in [mknod(1)][mknod.1].
+* **`path`** *(string, REQUIRED)* - full path to device inside container.
+    If a [file][] already exists at `path` that does not match the requested device, the runtime MUST generate an error.
+* **`major, minor`** *(int64, REQUIRED unless `type` is `p`)* - [major, minor numbers][devices] for the device.
+* **`fileMode`** *(uint32, OPTIONAL)* - file mode for the device.
+    You can also control access to devices [with cgroups](#configLinuxDeviceAllowedlist).
+* **`uid`** *(uint32, OPTIONAL)* - id of device owner in the [container namespace](glossary.md#container-namespace).
+* **`gid`** *(uint32, OPTIONAL)* - id of device group in the [container namespace](glossary.md#container-namespace).
+
+`type`, `major` and `minor`组合仅仅用在单个设备上，不能共享.
+
+```json
+"devices": [
+    {
+        "path": "/dev/fuse",
+        "type": "c",
+        "major": 10,
+        "minor": 229,
+        "fileMode": 438,
+        "uid": 0,
+        "gid": 0
+    },
+    {
+        "path": "/dev/sda",
+        "type": "b",
+        "major": 8,
+        "minor": 0,
+        "fileMode": 432,
+        "uid": 0,
+        "gid": 0
     }
 ]
 ```
