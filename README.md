@@ -10,4 +10,8 @@ OCI镜像Spec包括了一个Manifest(清单), 一个Manifest Index (清单索引
 
 https://github.com/opencontainers/image-spec/
 
-## OCI发布Spec
+## OCI分发Spec
+
+分发Spec定义了容器内容分发标准化的API协议
+
+https://github.com/opencontainers/distribution-spec/
