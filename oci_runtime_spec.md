@@ -173,7 +173,7 @@
 
 #### 设备（devices）
 
-**`devices`** 可选的) 列举容器内必须包含的设备
+**`devices`** （可选的) 列举容器内必须包含的设备
 
 Each entry has the following structure:
 
