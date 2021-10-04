@@ -15,6 +15,7 @@
 - **Digest**: a unique identifier created from a cryptographic hash of a Blob's content. Digests are defined under the OCI Image Spec <sup>[apdx-3](#appendix)</sup>
 - **Tag**: a custom, human-readable Manifest identifier
 
+![registry](https://github.com/google/go-containerregistry/blob/d7f8d06c87ed209507dd5f2d723267fe35b38a9f/images/remote.dot.svg)
 
 ## Pull操作
 
