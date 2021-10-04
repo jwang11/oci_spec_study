@@ -1,4 +1,4 @@
-## OCI运行时Spec
+# OCI运行时Spec
 > The Open Container Initiative Runtime Specification aims to specify the configuration, execution environment, and lifecycle of a container.
 
 > A container's configuration is specified as the config.json for the supported platforms and details the fields that enable the creation of a container. The execution environment 
@@ -9,11 +9,11 @@
 - 执行环境 (bundle)
 - 生命周期和操作 (lifecycle)
 
-### 配置文件（configuration）
+## 配置文件（configuration）
 
 配置是一个平台相关的config.json文件，这里这介绍Linux平台
 
-#### 缺省文件系统 (filesystem)
+### 缺省文件系统 (filesystem)
 在Linux 容器的文件系统里，下面这些是必须具备的（可以更多）。
 
 | Path     | Type   |
@@ -101,7 +101,7 @@
                 }
         ],
 ```
-#### 命名空间（namespace )
+### 命名空间（namespace )
 
 * **`type`** *(string, REQUIRED)* - namespace类型. Linux容器应该支持下面这些Namespace，
     * **`pid`** 容器进程应该只看见自己容器内的进程.
@@ -147,7 +147,7 @@
 ```
 
 
-#### 用户namespace的映射（host -> container）
+### 用户namespace的映射（host -> container）
 **`uidMappings`** (array of objects, OPTIONAL) describes the user namespace uid mappings from the host to the container.
 **`gidMappings`** (array of objects, OPTIONAL) describes the user namespace gid mappings from the host to the container.
 
@@ -173,7 +173,7 @@
 ]
 ```
 
-#### 设备（devices）
+### 设备（devices）
 
 **`devices`** （可选的) 列举容器内必须包含的设备
 
@@ -214,7 +214,7 @@ Each entry has the following structure:
 ]
 ```
 
-#### 控制组（Control groups）
+### 控制组（Control groups）
 **`cgroupsPath`** (string, 可选) cgroups路径.
 It can be used to either control the cgroups hierarchy for containers or to run a new process in an existing container.
 **`devices`** (array of objects, 可选) configures the [allowed device list][cgroup-v1-devices].
@@ -244,7 +244,7 @@ It can be used to either control the cgroups hierarchy for containers or to run 
 }
 ```
 
-#### 系统设置（Sysctl）
+### 系统设置（Sysctl）
 **`sysctl`** (object, 可选) allows kernel parameters to be modified at runtime for the container.
 
 
@@ -256,7 +256,7 @@ It can be used to either control the cgroups hierarchy for containers or to run 
 ```
 
 
-#### 安全计算（Seccomp）
+### 安全计算（Seccomp）
 
 The following parameters can be specified to set up seccomp:
 * **`syscalls`** *(array of objects, OPTIONAL)* - match a syscall in seccomp.
@@ -293,7 +293,7 @@ The following parameters can be specified to set up seccomp:
     ]
 }
 ```
-#### rootfs挂载传播（Mount Propagation）
+### rootfs挂载传播（Mount Propagation）
 **`rootfsPropagation`** (string, 可选) 设置rootfs的挂载传播.
 取值范围： `shared`, `slave`, `private` or `unbindable`.
 注意，一个对等组（peer group） 是一组可以相互传播挂载/卸载信息的挂载点
@@ -309,7 +309,7 @@ The following parameters can be specified to set up seccomp:
 "rootfsPropagation": "slave",
 ```
 
-#### 屏蔽路径（Masked Paths）
+### 屏蔽路径（Masked Paths）
 
 **`maskedPaths`** (array of strings, OPTIONAL) will mask over the provided paths inside the container so that they cannot be read.
 
@@ -319,7 +319,7 @@ The following parameters can be specified to set up seccomp:
 ]
 ```
 
-#### 只读路径（Readonly Paths）
+### 只读路径（Readonly Paths）
 
 **`readonlyPaths`** (array of strings, 可选) will set the provided paths as readonly inside the container.
 ```json
@@ -328,14 +328,15 @@ The following parameters can be specified to set up seccomp:
 ]
 ```
 
-#### 挂载点标签（Mount Label）
+### 挂载点标签（Mount Label）
 
 **`mountLabel`** (string, 可选) 设置挂载点的Selinux context.
 ```json
 "mountLabel": "system_u:object_r:svirt_sandbox_file_t:s0:c715,c811"
 ```
 
-### 容器bundle
+## 容器bundle
+
 文件系统Bundle是一个容器格式，它包含了容器运行需要的 - 根文件系统和config，可以在bundle上执行spec规定的操作.
 
 A Standard Container bundle contains all the information needed to load and run a container.
@@ -347,7 +348,8 @@ This includes the following artifacts:
 
 2. <a name="containerFormat02" />container's root filesystem: the directory referenced by [`root.path`](config.md#root), if that property is set in `config.json`.
 
-### 运行时和生命周期
+## 运行时和生命周期
+
 - 状态（State）
 * **`ociVersion`** (string, REQUIRED) is version of the Open Container Initiative Runtime Specification with which the state complies.
 * **`id`** (string, REQUIRED) is the container's ID.
@@ -406,7 +408,7 @@ This includes the following artifacts:
 13. The [`poststop` hooks](config.md#poststop) MUST be invoked by the runtime.
     If any `poststop` hook fails, the runtime MUST [log a warning](#warnings), but the remaining hooks and lifecycle continue as if the hook had succeeded.
 
-### 操作（Operations）
+## 操作（Operations）
 
 - Query State
 
