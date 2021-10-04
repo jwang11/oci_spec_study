@@ -254,8 +254,7 @@ It can be used to either control the cgroups hierarchy for containers or to run 
 ```
 
 
-#### Seccomp
-**`seccomp`** (object, OPTIONAL)
+#### 安全计算（Seccomp）
 
 The following parameters can be specified to set up seccomp:
 * **`syscalls`** *(array of objects, OPTIONAL)* - match a syscall in seccomp.
