@@ -1,12 +1,13 @@
 ## OCI运行时Spec
 > The Open Container Initiative Runtime Specification aims to specify the configuration, execution environment, and lifecycle of a container.
 
-> A container's configuration is specified as the config.json for the supported platforms and details the fields that enable the creation of a container. The execution environment > is specified to ensure that applications running inside a container have a consistent environment between runtimes along with common actions defined for the container's lifecycle.
+> A container's configuration is specified as the config.json for the supported platforms and details the fields that enable the creation of a container. The execution environment 
+> is specified to ensure that applications running inside a container have a consistent environment between runtimes along with common actions defined for the container's lifecycle.
 
 包括三部分内容
 - 配置文件（多平台Linux, Windows，Solaris...）
-- 执行环境
-- 生命周期和操作
+- 执行环境 (bundle)
+- 生命周期和操作 (lifecycle)
 
 ### 配置文件（configuration）
 配置是一个平台相关的config.json文件，这里这介绍Linux平台
@@ -332,3 +333,129 @@ The following parameters can be specified to set up seccomp:
 ```json
 "mountLabel": "system_u:object_r:svirt_sandbox_file_t:s0:c715,c811"
 ```
+
+### 容器bundle
+文件系统Bundle是一个容器格式，它包含了容器运行需要的 - 根文件系统和config，可以在bundle上执行spec规定的操作.
+
+A Standard Container bundle contains all the information needed to load and run a container.
+This includes the following artifacts:
+
+1. <a name="containerFormat01" />`config.json`: contains configuration data.
+    This REQUIRED file MUST reside in the root of the bundle directory and MUST be named `config.json`.
+    See [`config.json`](config.md) for more details.
+
+2. <a name="containerFormat02" />container's root filesystem: the directory referenced by [`root.path`](config.md#root), if that property is set in `config.json`.
+
+### 运行时和生命周期
+- 状态（State）
+* **`ociVersion`** (string, REQUIRED) is version of the Open Container Initiative Runtime Specification with which the state complies.
+* **`id`** (string, REQUIRED) is the container's ID.
+    This MUST be unique across all containers on this host.
+    There is no requirement that it be unique across hosts.
+* **`status`** (string, REQUIRED) is the runtime state of the container.
+    * `creating`: the container is being created (step 2 in the [lifecycle](#lifecycle))
+    * `created`: the runtime has finished the [create operation](#create) (after step 2 in the [lifecycle](#lifecycle)), and the container process has neither exited nor executed the user-specified program
+    * `running`: the container process has executed the user-specified program but has not exited (after step 8 in the [lifecycle](#lifecycle))
+    * `stopped`: the container process has exited (step 10 in the [lifecycle](#lifecycle))
+
+* **`pid`** (int, REQUIRED when `status` is `created` or `running` on Linux, OPTIONAL on other platforms) is the ID of the container process.
+  For hooks executed in the runtime namespace, it is the pid as seen by the runtime.
+  For hooks executed in the container namespace, it is the pid as seen by the container.
+* **`bundle`** (string, REQUIRED) is the absolute path to the container's bundle directory.
+    This is provided so that consumers can find the container's configuration and root filesystem on the host.
+* **`annotations`** (map, OPTIONAL) contains the list of annotations associated with the container.
+    If no annotations were provided then this property MAY either be absent or an empty map.
+    
+```json
+{
+    "ociVersion": "0.2.0",
+    "id": "oci-container1",
+    "status": "running",
+    "pid": 4422,
+    "bundle": "/containers/redis",
+    "annotations": {
+        "myKey": "myValue"
+    }
+}
+```
+
+- 生命周期（lifecycle）
+
+1. OCI compliant runtime's [`create`](runtime.md#create) command is invoked with a reference to the location of the bundle and a unique identifier.
+2. The container's runtime environment MUST be created according to the configuration in [`config.json`](config.md).
+    If the runtime is unable to create the environment specified in the [`config.json`](config.md), it MUST [generate an error](#errors).
+    While the resources requested in the [`config.json`](config.md) MUST be created, the user-specified program (from [`process`](config.md#process)) MUST NOT be run at this time.
+    Any updates to [`config.json`](config.md) after this step MUST NOT affect the container.
+3. The [`prestart` hooks](config.md#prestart) MUST be invoked by the runtime.
+    If any `prestart` hook fails, the runtime MUST [generate an error](#errors), stop the container, and continue the lifecycle at step 12.
+4. The [`createRuntime` hooks](config.md#createRuntime-hooks) MUST be invoked by the runtime.
+    If any `createRuntime` hook fails, the runtime MUST [generate an error](#errors), stop the container, and continue the lifecycle at step 12.
+5. The [`createContainer` hooks](config.md#createContainer-hooks) MUST be invoked by the runtime.
+    If any `createContainer` hook fails, the runtime MUST [generate an error](#errors), stop the container, and continue the lifecycle at step 12.
+6. Runtime's [`start`](runtime.md#start) command is invoked with the unique identifier of the container.
+7. The [`startContainer` hooks](config.md#startContainer-hooks) MUST be invoked by the runtime.
+    If any `startContainer` hook fails, the runtime MUST [generate an error](#errors), stop the container, and continue the lifecycle at step 12.
+8. The runtime MUST run the user-specified program, as specified by [`process`](config.md#process).
+9. The [`poststart` hooks](config.md#poststart) MUST be invoked by the runtime.
+    If any `poststart` hook fails, the runtime MUST [log a warning](#warnings), but the remaining hooks and lifecycle continue as if the hook had succeeded.
+10. The container process exits.
+    This MAY happen due to erroring out, exiting, crashing or the runtime's [`kill`](runtime.md#kill) operation being invoked.
+11. Runtime's [`delete`](runtime.md#delete) command is invoked with the unique identifier of the container.
+12. The container MUST be destroyed by undoing the steps performed during create phase (step 2).
+13. The [`poststop` hooks](config.md#poststop) MUST be invoked by the runtime.
+    If any `poststop` hook fails, the runtime MUST [log a warning](#warnings), but the remaining hooks and lifecycle continue as if the hook had succeeded.
+
+### 操作（Operations）
+
+- Query State
+
+`state <container-id>`
+
+This operation MUST [generate an error](#errors) if it is not provided the ID of a container.
+Attempting to query a container that does not exist MUST [generate an error](#errors).
+This operation MUST return the state of a container as specified in the [State](#state) section.
+
+- Create
+
+`create <container-id> <path-to-bundle>`
+
+This operation MUST [generate an error](#errors) if it is not provided a path to the bundle and the container ID to associate with the container.
+If the ID provided is not unique across all containers within the scope of the runtime, or is not valid in any other way, the implementation MUST [generate an error](#errors) and a new container MUST NOT be created.
+This operation MUST create a new container.
+
+All of the properties configured in [`config.json`](config.md) except for [`process`](config.md#process) MUST be applied.
+[`process.args`](config.md#process) MUST NOT be applied until triggered by the [`start`](#start) operation.
+The remaining `process` properties MAY be applied by this operation.
+If the runtime cannot apply a property as specified in the [configuration](config.md), it MUST [generate an error](#errors) and a new container MUST NOT be created.
+
+The runtime MAY validate `config.json` against this spec, either generically or with respect to the local system capabilities, before creating the container ([step 2](#lifecycle)).
+Runtime callers who are interested in pre-create validation can run [bundle-validation tools](implementations.md#testing--tools) before invoking the create operation.
+
+Any changes made to the [`config.json`](config.md) file after this operation will not have an effect on the container.
+- Start
+`start <container-id>`
+
+This operation MUST [generate an error](#errors) if it is not provided the container ID.
+Attempting to `start` a container that is not [`created`](#state) MUST have no effect on the container and MUST [generate an error](#errors).
+This operation MUST run the user-specified program as specified by [`process`](config.md#process).
+This operation MUST generate an error if `process` was not set.
+- Kill
+`kill <container-id> <signal>`
+
+This operation MUST [generate an error](#errors) if it is not provided the container ID.
+Attempting to send a signal to a container that is neither [`created` nor `running`](#state) MUST have no effect on the container and MUST [generate an error](#errors).
+This operation MUST send the specified signal to the container process.
+
+- Delete
+`delete <container-id>`
+
+This operation MUST [generate an error](#errors) if it is not provided the container ID.
+Attempting to `delete` a container that is not [`stopped`](#state) MUST have no effect on the container and MUST [generate an error](#errors).
+Deleting a container MUST delete the resources that were created during the `create` step.
+Note that resources associated with the container, but not created by this container, MUST NOT be deleted.
+Once a container is deleted its ID MAY be used by a subsequent container.
+
+- Hooks
+Many of the operations specified in this specification have "hooks" that allow for additional actions to be taken before or after each operation.
+
+
