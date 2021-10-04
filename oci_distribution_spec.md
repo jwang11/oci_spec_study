@@ -22,7 +22,7 @@ The process of pulling an artifact centers around retrieving two components: the
 
 Typically, the first step in pulling an artifact is to retrieve the manifest.
 
-### Pulling manifests文件
+- ***Pulling manifests***
 
 To pull a manifest, perform a `GET` request to a URL in the following form:
 `/v2/<name>/manifests/<reference>` <sup>[end-3](#endpoints)</sup>
@@ -51,7 +51,7 @@ blob data.
 
 If the manifest is not found in the registry, the response code MUST be `404 Not Found`.
 
-### Pulling blobs文件
+- ***Pulling blobs***
 
 To pull a blob, perform a `GET` request to a URL in the following form:
 `/v2/<name>/blobs/<digest>` <sup>[end-2](#endpoints)</sup>
@@ -64,7 +64,7 @@ the value of this header MUST be a digest matching that of the response body.
 
 If the blob is not found in the registry, the response code MUST be `404 Not Found`.
 
-### 检查是否内容在Registry存在
+- ***检查是否内容在Registry存在***
 In order to verify that a repository contains a given manifest or blob, make a `HEAD` request to a URL in the following form:
 
 `/v2/<name>/manifests/<reference>` <sup>[end-3](#endpoints)</sup> (for manifests), or
