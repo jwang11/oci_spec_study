@@ -65,6 +65,7 @@ the value of this header MUST be a digest matching that of the response body.
 If the blob is not found in the registry, the response code MUST be `404 Not Found`.
 
 - ***检查是否内容在Registry存在***
+
 In order to verify that a repository contains a given manifest or blob, make a `HEAD` request to a URL in the following form:
 
 `/v2/<name>/manifests/<reference>` <sup>[end-3](#endpoints)</sup> (for manifests), or
