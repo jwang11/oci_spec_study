@@ -10,6 +10,7 @@
 - 生命周期和操作 (lifecycle)
 
 ### 配置文件（configuration）
+
 配置是一个平台相关的config.json文件，这里这介绍Linux平台
 
 #### 缺省文件系统 (filesystem)
