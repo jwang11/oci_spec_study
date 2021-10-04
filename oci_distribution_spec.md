@@ -20,7 +20,19 @@
 
 The process of pulling an artifact centers around retrieving two components: the manifest and one or more blobs.
 
-Typically, the first step in pulling an artifact is to retrieve the manifest.
+- ***检查是否在Registry存在***
+
+In order to verify that a repository contains a given manifest or blob, make a `HEAD` request to a URL in the following form:
+
+`/v2/<name>/manifests/<reference>` <sup>[end-3](#endpoints)</sup> (for manifests), or
+
+`/v2/<name>/blobs/<digest>` <sup>[end-2](#endpoints)</sup> (for blobs).
+
+A HEAD request to an existing blob or manifest URL MUST return `200 OK`. A successful response SHOULD contain the digest
+of the uploaded blob in the header `Docker-Content-Digest`.
+
+If the blob or manifest is not found in the registry, the response code MUST be `404 Not Found`.
+
 
 - ***Pulling manifests***
 
@@ -64,15 +76,113 @@ the value of this header MUST be a digest matching that of the response body.
 
 If the blob is not found in the registry, the response code MUST be `404 Not Found`.
 
-- ***检查是否内容在Registry存在***
 
-In order to verify that a repository contains a given manifest or blob, make a `HEAD` request to a URL in the following form:
 
-`/v2/<name>/manifests/<reference>` <sup>[end-3](#endpoints)</sup> (for manifests), or
+## Push操作
 
-`/v2/<name>/blobs/<digest>` <sup>[end-2](#endpoints)</sup> (for blobs).
+Pushing an artifact typically works in the opposite order as a pull: the blobs making up the artifact are uploaded first,
+and the manifest last. Strictly speaking, content can be uploaded to the registry in any order, but a registry MAY reject
+a manifest if it references blobs that are not yet uploaded, resulting in a `BLOB_UNKNOWN` error <sup>[code-1](#error-codes)</sup>.
 
-A HEAD request to an existing blob or manifest URL MUST return `200 OK`. A successful response SHOULD contain the digest
-of the uploaded blob in the header `Docker-Content-Digest`.
+- ***Pushing blobs***
+有两个方法来push blobs: chunked or monolithic，这里只介绍一下chunks
 
-If the blob or manifest is not found in the registry, the response code MUST be `404 Not Found`.
+#### Pushing a blob in chunks
+
+A chunked blob upload is accomplished in three phases:
+1. Obtain a session ID (upload URL) (`POST`)
+2. Upload the chunks (`PATCH`)
+3. Close the session (`PUT`)
+
+For information on obtaining a session ID, reference the above section on pushing a blob monolithically via the `POST`/`PUT` method. The process remains unchanged for chunked upload, except that the post request MUST include the following header:
+
+```
+Content-Length: 0
+```
+
+Please reference the above section for restrictions on the `<location>`.
+
+---
+To upload a chunk, issue a `PATCH` request to a URL path in the following format, and with the following headers and body:
+
+URL path: `<location>` <sup>[end-5](#endpoints)</sup>
+```
+Content-Type: application/octet-stream
+Content-Range: <range>
+Content-Length: <length>
+```
+```
+<upload byte stream of chunk>
+```
+
+The `<location>` refers to the URL obtained from the preceding `POST` request.
+
+The `<range>` refers to the byte range of the chunk, and MUST be inclusive on both ends. The first chunk's range MUST begin with `0`. It MUST match the following regular expression:
+
+```regexp
+^[0-9]+-[0-9]+$
+```
+
+The `<length>` is the content-length, in bytes, of the current chunk.
+
+Each successful chunk upload MUST have a `202 Accepted` response code, and MUST have the following header:
+
+```
+Location <location>
+```
+
+Each consecutive chunk upload SHOULD use the `<location>` provided in the response to the previous chunk upload.
+
+Chunks MUST be uploaded in order, with the first byte of a chunk being the last chunk's `<end-of-range>` plus one. If a chunk is uploaded out of order, the registry MUST respond with a `416 Requested Range Not Satisfiable` code.
+
+The final chunk MAY be uploaded using a `PATCH` request or it MAY be uploaded in the closing `PUT` request. Regardless of how the final chunk is uploaded, the session MUST be closed with a `PUT` request.
+
+---
+
+To close the session, issue a `PUT` request to a url in the following format, and with the following headers (and optional body, depending on whether or not the final chunk was uploaded already via a `PATCH` request):
+
+`<location>?digest=<digest>`
+```
+Content-Length: <length of chunk, if present>
+Content-Range: <range of chunk, if present>
+Content-Type: application/octet-stream <if chunk provided>
+```
+```
+OPTIONAL: <final chunk byte stream>
+```
+
+The closing `PUT` request MUST include the `<digest>` of the whole blob (not the final chunk) as a query parameter.
+
+The response to a successful closing of the session MUST be `201 Created`, and MUST contain the following header:
+```
+Location: <blob-location>
+```
+
+Here, `<blob-location>` is a pullable blob URL.
+
+- ***Pushing Manifests***
+
+To push a manifest, perform a `PUT` request to a path in the following format, and with the following headers
+and body:
+`/v2/<name>/manifests/<reference>` <sup>[end-7](#endpoints)</sup>
+```
+Content-Type: application/vnd.oci.image.manifest.v1+json
+```
+```
+<manifest byte stream>
+```
+
+`<name>` is the namespace of the repository, and the `<reference>` MUST be either a) a digest or b) a tag.
+
+The uploaded manifest MUST reference any blobs that make up the artifact. However, the list of blobs MAY
+be empty. Upon a successful upload, the registry MUST return response code `201 Created`, and MUST have the
+following header:
+
+```
+Location: <location>
+```
+
+The `<location>` is a pullable manifest URL.
+
+An attempt to pull a nonexistent repository MUST return response code `404 Not Found`
+
