@@ -108,11 +108,11 @@
     * **`ipc`** 只允许容器内的进程间通过IPC交互
     * **`uts`** 容器有自己的Host name和Domain name.
     * **`user`** 可以把host的用户和组ID映射到容器
-    * **`cgroup`** 容器有自己隔离的cgroup hierarchy
+    * **`cgroup`** 容器有自己隔离的cgroup层级
  
 * **`path`** *(string可选的)* - namespace文件.
     必须是绝对地址 [runtime mount namespace](glossary.md#runtime-namespace).
-    运行时必须让容器的进程加入到这个path所在的Namespace.
+    运行时必须让容器的进程加入到这个path所在的Namespace， 典型应用是k8spod的pause容器。
 
    如果没有path，表明需要创建一个新的指定类型的[container namespace](glossary.md#container-namespace).
 
@@ -210,4 +210,76 @@ Each entry has the following structure:
         "gid": 0
     }
 ]
+```
+
+#### 控制组（Control groups）
+**`cgroupsPath`** (string, 可选) cgroups路径.
+It can be used to either control the cgroups hierarchy for containers or to run a new process in an existing container.
+**`devices`** (array of objects, 可选) configures the [allowed device list][cgroup-v1-devices].
+**`memory`** (object, 可选) represents the cgroup subsystem `memory` and it's used to set limits on the container's memory usage.
+**`cpu`** (object, 可选) represents the cgroup subsystems `cpu` and `cpusets`.
+```json
+"cgroupsPath": "/myRuntime/myContainer",
+"resources": {
+    "memory": {
+    "limit": 100000,
+    "reservation": 200000
+    },
+    "cpu": {
+    "shares": 1024,
+    "quota": 1000000,
+    "period": 500000,
+    "realtimeRuntime": 950000,
+    "realtimePeriod": 1000000,
+    "cpus": "2-3",
+    },
+    "devices": [
+        {
+            "allow": false,
+            "access": "rwm"
+        }
+    ]
+}
+```
+
+#### 系统设置（Sysctl）
+**`sysctl`** (object, 可选) allows kernel parameters to be modified at runtime for the container.
+
+
+```json
+"sysctl": {
+    "net.ipv4.ip_forward": "1",
+    "net.core.somaxconn": "256"
+}
+```
+
+
+#### Seccomp
+**`seccomp`** (object, OPTIONAL)
+
+The following parameters can be specified to set up seccomp:
+* **`syscalls`** *(array of objects, OPTIONAL)* - match a syscall in seccomp.
+    * **`names`** *(array of strings, REQUIRED)* - the names of the syscalls.
+        `names` MUST contain at least one entry.
+    * **`action`** *(string, REQUIRED)* - the action for seccomp rules.
+        A valid list of constants as of libseccomp v2.5.0 is shown below.
+* **`defaultAction`** *(string, REQUIRED)* - the default action for seccomp. Allowed values are the same as `syscalls[].action`.
+* **`listenerPath`** *(string, OPTIONAL)* - specifies the path of UNIX domain socket over which the runtime will send the [container process state](#containerprocessstate) data structure when the `SCMP_ACT_NOTIFY` action is used.
+```json
+"seccomp": {
+    "defaultAction": "SCMP_ACT_ALLOW",
+    "architectures": [
+        "SCMP_ARCH_X86",
+        "SCMP_ARCH_X32"
+    ],
+    "syscalls": [
+        {
+            "names": [
+                "getcwd",
+                "chmod"
+            ],
+            "action": "SCMP_ACT_ERRNO"
+        }
+    ]
+}
 ```
