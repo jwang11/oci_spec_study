@@ -262,6 +262,15 @@ The following parameters can be specified to set up seccomp:
         `names` MUST contain at least one entry.
     * **`action`** *(string, REQUIRED)* - the action for seccomp rules.
         A valid list of constants as of libseccomp v2.5.0 is shown below.
+        * `SCMP_ACT_KILL`
+        * `SCMP_ACT_KILL_PROCESS`
+        * `SCMP_ACT_KILL_THREAD`
+        * `SCMP_ACT_TRAP`
+        * `SCMP_ACT_ERRNO`
+        * `SCMP_ACT_TRACE`
+        * `SCMP_ACT_ALLOW`
+        * `SCMP_ACT_LOG`
+        * `SCMP_ACT_NOTIFY`
 * **`defaultAction`** *(string, REQUIRED)* - the default action for seccomp. Allowed values are the same as `syscalls[].action`.
 * **`listenerPath`** *(string, OPTIONAL)* - specifies the path of UNIX domain socket over which the runtime will send the [container process state](#containerprocessstate) data structure when the `SCMP_ACT_NOTIFY` action is used.
 ```json
