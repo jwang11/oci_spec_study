@@ -291,3 +291,44 @@ The following parameters can be specified to set up seccomp:
     ]
 }
 ```
+#### rootfs挂载传播（Mount Propagation）
+**`rootfsPropagation`** (string, 可选) 设置rootfs的挂载传播.
+取值范围： `shared`, `slave`, `private` or `unbindable`.
+注意，一个对等组（peer group） 是一组可以相互传播挂载/卸载信息的挂载点
+
+* **`shared`**: the rootfs mount belongs to a new peer group.
+    This means that further mounts (e.g. nested containers) will also belong to that peer group and will propagate events to the rootfs.
+    Note this does not mean that it's shared with the host.
+* **`slave`**: the rootfs mount receives propagation events from the host (e.g. if something is mounted on the host it will also appear in the container) but not the other way around.
+* **`private`**: the rootfs mount doesn't receive mount propagation events from the host and further mounts in nested containers will be isolated from the host and from the rootfs (even if the nested container `rootfsPropagation` option is shared).
+* **`unbindable`**: the rootfs mount is a private mount that cannot be bind-mounted.
+
+```json
+"rootfsPropagation": "slave",
+```
+
+#### 屏蔽路径（Masked Paths）
+
+**`maskedPaths`** (array of strings, OPTIONAL) will mask over the provided paths inside the container so that they cannot be read.
+
+```json
+"maskedPaths": [
+    "/proc/kcore"
+]
+```
+
+#### 只读路径（Readonly Paths）
+
+**`readonlyPaths`** (array of strings, 可选) will set the provided paths as readonly inside the container.
+```json
+"readonlyPaths": [
+    "/proc/sys"
+]
+```
+
+#### 挂载点标签（Mount Label）
+
+**`mountLabel`** (string, 可选) 设置挂载点的Selinux context.
+```json
+"mountLabel": "system_u:object_r:svirt_sandbox_file_t:s0:c715,c811"
+```
