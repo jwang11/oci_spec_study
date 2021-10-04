@@ -232,3 +232,152 @@ When the variant of the CPU is not listed in the table, values are implementatio
   }
 }
 ```
+
+### 文件系统层
+
+### `+gzip` Media Types
+
+* The media type `application/vnd.oci.image.layer.v1.tar+gzip` represents an `application/vnd.oci.image.layer.v1.tar` payload which has been compressed with [gzip][rfc1952_2].
+
+### 变化类型
+
+Types of changes that can occur in a changeset are:
+
+* Additions
+* Modifications
+* Removals
+
+Additions and Modifications are represented the same in the changeset tar archive.
+
+Removals are represented using "[whiteout](#whiteouts)" file entries (See [Representing Changes](#representing-changes)).
+
+### 文件类型
+
+* regular files
+* directories
+* sockets
+* symbolic links
+* block devices
+* character devices
+* FIFOs
+
+
+### 创建文件系统层
+
+#### Initial Root Filesystem
+
+The initial root filesystem is the base or parent layer.
+
+For this example, an image root filesystem has an initial state as an empty directory.
+The name of the directory is not relevant to the layer itself, only for the purpose of producing comparisons.
+
+Here is an initial empty directory structure for a changeset, with a unique directory name `rootfs-c9d-v1`.
+
+```
+rootfs-c9d-v1/
+```
+
+#### Populate Initial Filesystem
+
+Files and directories are then created:
+
+```
+rootfs-c9d-v1/
+    etc/
+        my-app-config
+    bin/
+        my-app-binary
+        my-app-tools
+```
+
+The `rootfs-c9d-v1` directory is then created as a plain [tar archive][tar-archive] with relative path to `rootfs-c9d-v1`.
+Entries for the following files:
+
+```
+./
+./etc/
+./etc/my-app-config
+./bin/
+./bin/my-app-binary
+./bin/my-app-tools
+```
+
+#### Populate a Comparison Filesystem
+
+Create a new directory and initialize it with a copy or snapshot of the prior root filesystem.
+Example commands that can preserve [file attributes](#file-attributes) to make this copy are:
+* [cp(1)](http://linux.die.net/man/1/cp): `cp -a rootfs-c9d-v1/ rootfs-c9d-v1.s1/`
+* [rsync(1)](http://linux.die.net/man/1/rsync):  `rsync -aHAX rootfs-c9d-v1/ rootfs-c9d-v1.s1/`
+* [tar(1)](http://linux.die.net/man/1/tar): `mkdir rootfs-c9d-v1.s1 && tar --acls --xattrs -C rootfs-c9d-v1/ -c . | tar -C rootfs-c9d-v1.s1/ --acls --xattrs -x` (including `--selinux` where supported)
+
+Any [changes](#change-types) to the snapshot MUST NOT change or affect the directory it was copied from.
+
+For example `rootfs-c9d-v1.s1` is an identical snapshot of `rootfs-c9d-v1`.
+In this way `rootfs-c9d-v1.s1` is prepared for updates and alterations.
+
+**Implementor's Note**: *a copy-on-write or union filesystem can efficiently make directory snapshots*
+
+Initial layout of the snapshot:
+
+```
+rootfs-c9d-v1.s1/
+    etc/
+        my-app-config
+    bin/
+        my-app-binary
+        my-app-tools
+```
+
+See [Change Types](#change-types) for more details on changes.
+
+For example, add a directory at `/etc/my-app.d` containing a default config file, removing the existing config file.
+Also a change (in attribute or file content) to `./bin/my-app-tools` binary to handle the config layout change.
+
+Following these changes, the representation of the `rootfs-c9d-v1.s1` directory:
+
+```
+rootfs-c9d-v1.s1/
+    etc/
+        my-app.d/
+            default.cfg
+    bin/
+        my-app-binary
+        my-app-tools
+```
+
+#### Determining Changes
+
+When two directories are compared, the relative root is the top-level directory.
+The directories are compared, looking for files that have been [added, modified, or removed](#change-types).
+
+For this example, `rootfs-c9d-v1/` and `rootfs-c9d-v1.s1/` are recursively compared, each as relative root path.
+
+The following changeset is found:
+
+```
+Added:      /etc/my-app.d/
+Added:      /etc/my-app.d/default.cfg
+Modified:   /bin/my-app-tools
+Deleted:    /etc/my-app-config
+```
+
+This reflects the removal of `/etc/my-app-config` and creation of a file and directory at `/etc/my-app.d/default.cfg`.
+`/bin/my-app-tools` has also been replaced with an updated version.
+
+#### Representing Changes
+
+A [tar archive][tar-archive] is then created which contains *only* this changeset:
+
+- Added and modified files and directories in their entirety
+- Deleted files or directories marked with a [whiteout file](#whiteouts)
+
+The resulting tar archive for `rootfs-c9d-v1.s1` has the following entries:
+
+```
+./etc/my-app.d/
+./etc/my-app.d/default.cfg
+./bin/my-app-tools
+./etc/.wh.my-app-config
+```
+
+To signify that the resource `./etc/my-app-config` MUST be removed when the changeset is applied, the basename of the entry is prefixed with `.wh.`.
